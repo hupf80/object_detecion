@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+   <param name="conv_tsh" type="double" value="0.45" />
+   <param name="y_detect_border" type="int" value="540" />
+   <param name="TopicNamePubImgRaw" type="str" value="/object_detector/detections/img_out" />
+   <param name="TopicNameSubImgRaw" type="str" value="/front_camera/color/image_raw" />
+   <param name="classnameyamlpath" type="str" value="/configs/classnames/classnames.yaml" />
+
+    <!-- Node -->
+    <node name="object_detector" pkg="object_detection" type="object_detector" output="screen" respawn="true">
+    </node>
+    
+    
+    
+</launch>
