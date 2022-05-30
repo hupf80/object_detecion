@@ -24,6 +24,8 @@ Currently it is not ina Docker enviorment.
 
 If you don't have a CUDA Graphic Card theis would never work.
 
+Ask the Contributer for the weights file. Which has to be inserted into the configs/yolov5-6.0  folder
+
 
 
 
