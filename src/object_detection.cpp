@@ -160,7 +160,7 @@ public:
 		bbx.rect_height=r.rect.height;
 		bbx.rect_width=r.rect.width;
 		
-		//std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
+		std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
 		
 		cv::rectangle(image, r.rect, cv::Scalar(255, 0, 0), 2);
 		
