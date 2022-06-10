@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <map>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 
@@ -53,6 +54,21 @@ public:
     std::string classes_yaml_path;
     double conv_tsh_val;
     int y_detection_border;
+
+
+    struct Object{
+        int ClassSpecID,
+        float Prob,
+        bounding_box_msgs::boundingbox bbx,
+    }
+
+        std::map<int, Object>  = {{1, "Apple",},
+                                {2, "Banana",},
+                                {3, "Mango",},
+                                {4, "Raspberry",},
+                                {5, "Blackberry",},
+                                {6, "Cocoa",}};
+
     
     std::vector<std::string> names;
     
@@ -159,20 +175,20 @@ public:
 
 		    if(center_of_rect.y >= y_detection_border)
 		    {
-            bbx.Class=r.id;
+            bbx.Class=names[r.id];
             bbx.probability=r.prob;
             bbx.rect_xmin=r.rect.x ;
             bbx.rect_ymin=r.rect.y ;
             bbx.rect_height=r.rect.height;
             bbx.rect_width=r.rect.width;
             
-            std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
+            //std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
             
             cv::rectangle(image, r.rect, cv::Scalar(255, 0, 0), 2);
             
             std::stringstream stream;
             
-            //stream << std::fixed << std::setprecision(2)  << "  score:" << r.prob <<  " "<< names[r.id];
+            stream << std::fixed << std::setprecision(2)  << "  score:" << r.prob <<  " "<< names[r.id];
             
             cv::putText(image, stream.str(), cv::Point(r.rect.x, r.rect.y - 5), 0, 1, cv::Scalar(0, 0, 255), 2);
             
