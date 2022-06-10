@@ -56,19 +56,19 @@ public:
     int y_detection_border;
 
 
+
+
     struct Object{
-        int ClassSpecID,
-        float Prob,
-        bounding_box_msgs::boundingbox bbx,
-    }
+        int ClassSpecID;
+        std::string ClassName;
+        float Prob;
+        int RectXmin;
+        int RectYmin;
+        int RectHeight;
+        int RectWidth;
+    };
 
-        std::map<int, Object>  = {{1, "Apple",},
-                                {2, "Banana",},
-                                {3, "Mango",},
-                                {4, "Raspberry",},
-                                {5, "Blackberry",},
-                                {6, "Cocoa",}};
-
+    std::map<int, Object> ObjectDict;
     
     std::vector<std::string> names;
     
