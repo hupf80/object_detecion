@@ -86,11 +86,17 @@ public:
         
 
 	if (config["names"]) {
-  	 names = config["names"].as<std::vector<std::string>>();
-	}
-	
+  	    names = config["names"].as<std::vector<std::string>>();
         yolov5Init();
+        ROS_INFO("[object_detection] Detector is ready");
     }
+    else{
+
+        ROS_ERROR("[object_detection] No Klass Names in yaml-file!");
+    
+    }
+    }
+
     
     
     
@@ -137,7 +143,8 @@ public:
         std::vector<BatchResult> batch_res;
         
         cv::Size s = image.size();
-        cv::Rect detectionROI(0, y_detect_border, s.height-0, s.width - y_detect_border);
+        cv::Rect detectionROI(0, y_detection_border, s.width-0, s.width - y_detection_border);
+        cv::rectangle(image, detectionROI, cv::Scalar(0, 255, 0), 4);
         cv::Mat temp0 = image.clone();
         
         batch_img.push_back(temp0);
@@ -148,31 +155,30 @@ public:
         //draw Boundingboxes which are in the detecion area
 	    for (const auto &r : batch_res[0])
 	    {
-	    	cv::rectangle(image, detectionROI, cv::Scalar(0, 255, 0), 4);
 	    	cv::Point center_of_rect = (r.rect.br() + r.rect.tl())*0.5;
-		if(center_of_rect.y >=y_detect_border)
-		{
-		
-		bbx.Class=r.id;
-		bbx.probability=r.prob;
-		bbx.rect_xmin=r.rect.x ;
-		bbx.rect_ymin=r.rect.y ;
-		bbx.rect_height=r.rect.height;
-		bbx.rect_width=r.rect.width;
-		
-		std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
-		
-		cv::rectangle(image, r.rect, cv::Scalar(255, 0, 0), 2);
-		
-		std::stringstream stream;
-		
-		stream << std::fixed << std::setprecision(2)  << "  score:" << r.prob <<  " "<< names[r.id];
-		
-		cv::putText(image, stream.str(), cv::Point(r.rect.x, r.rect.y - 5), 0, 1, cv::Scalar(0, 0, 255), 2);
-		
-		boundingbx_pub_.publish(bbx);
-		}
-	    }
+
+		    if(center_of_rect.y >= y_detection_border)
+		    {
+            bbx.Class=r.id;
+            bbx.probability=r.prob;
+            bbx.rect_xmin=r.rect.x ;
+            bbx.rect_ymin=r.rect.y ;
+            bbx.rect_height=r.rect.height;
+            bbx.rect_width=r.rect.width;
+            
+            std::cout << " id:" << r.id << " prob:" << r.prob << " rect:" << r.rect << std::endl;
+            
+            cv::rectangle(image, r.rect, cv::Scalar(255, 0, 0), 2);
+            
+            std::stringstream stream;
+            
+            //stream << std::fixed << std::setprecision(2)  << "  score:" << r.prob <<  " "<< names[r.id];
+            
+            cv::putText(image, stream.str(), cv::Point(r.rect.x, r.rect.y - 5), 0, 1, cv::Scalar(0, 0, 255), 2);
+            
+            boundingbx_pub_.publish(bbx);
+            }
+        }
 
         pub_.publish(input_bridge->toImageMsg());
 
@@ -243,7 +249,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "object_detector");
   std::vector<std::string> frame_ids(argv + 1, argv + argc);
-  ROS_INFO("[object_detection] Detector started, loading Object...");
+  ROS_INFO("[object_detection] Detector started, load model...");
   ObjectDetector detector;
   ros::spin();
   
