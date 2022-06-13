@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-   <param name="conv_tsh" type="double" value="0.45" />
+   <param name="conv_tsh" type="double" value="0.40" />
+   <param name="tracking_closest_tsh_pixel" type="int" value="200" />
+   <param name="tracking_max_obj_age" type="int" value="15" />
    <param name="y_detect_border" type="int" value="540" />
    <param name="TopicNamePubImgRaw" type="str" value="/object_detector/detections/img_out" />
    <param name="TopicNameSubImgRaw" type="str" value="/front_camera/color/image_raw" />
