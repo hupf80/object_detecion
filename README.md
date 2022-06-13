@@ -30,6 +30,15 @@ https://drive.google.com/file/d/1vysAi7l8uDr88RVkjP_680GRppttRq8t/view?usp=shari
 
 Please copy the weights file into configs/yolov5-6.0 as described above.
 
+##Instructions for Tracker
+
+The Object Detection has a simple nearest-neighbour object-tracking algorithm implemented.
+
+In the launch file there are settings, which can be adjusted.
+
+1. ´conv_tsh´ which is the convidence treshold for detecting objects
+2. ´tracking_closest_tsh_pixel´ which is the treshold, when a object of the same class is still matched in the distance in pixel
+3. ´tracking_max_obj_age´ says how old an object can get, when it is not matched with old tracklets.
 
 
 
