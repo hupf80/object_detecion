@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
     sensor_msgs
     bounding_box_msgs
     cv_bridge
+    std_msgs
 )
 
 
@@ -30,6 +31,7 @@ catkin_package(
         camera_info_manager
         sensor_msgs
         image_geometry
+        std_msgs
 )
 
 
