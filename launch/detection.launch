@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-   <param name="conv_tsh" type="double" value="0.40" />
-   <param name="tracking_closest_tsh_pixel" type="int" value="200" />
-   <param name="tracking_max_obj_age" type="int" value="15" />
+   <param name="conv_tsh" type="double" value="0.35" />
+   <param name="tracking_closest_tsh_pixel" type="int" value="300" />
+   <!-- When will the object, which is tracked, be published? in Y-pixel direction, y=0 would be in the top -->
+   <param name="y_publish_border" type="int" value="540" />
+   <param name="tracking_max_obj_age" type="int" value="5" />
    <param name="y_detect_border" type="int" value="540" />
+   <param name="x_detect_border_left" type="int" value="0" />
+   <param name="x_detect_border_right" type="int" value="1720" />
+   <param name="obj_width_tsh" type="int" value="100" />
+   <param name="obj_heigth_tsh" type="int" value="100" />
    <param name="TopicNamePubImgRaw" type="str" value="/object_detector/detections/img_out" />
-   <param name="TopicNameSubImgRaw" type="str" value="/front_camera/color/image_raw" />
+   <param name="TopicNameSubImgRaw" type="str" value="/camera/color/image_raw" />
+    <param name="TopicNamePubFreDetection" type="str" value="/fre_detections" />
    <param name="classnameyamlpath" type="str" value="/configs/classnames/classnames.yaml" />
 
     <!-- Node -->
