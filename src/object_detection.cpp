@@ -8,8 +8,9 @@
 #include <string>
 #include <map>
 
-
-#include<math.h>
+//#include <sstream>
+#include <math.h>
+#include <string> 
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
@@ -23,6 +24,7 @@
 #include <sensor_msgs/Image.h>
 #include <camera_info_manager/camera_info_manager.h>
 #include <image_transport/image_transport.h>
+#include "std_msgs/String.h"
 
 
 #include <cv_bridge/cv_bridge.h>
@@ -48,6 +50,7 @@ public:
 
     ros::Publisher boundingbx_pub_;
     ros::Publisher boundingbxs_pub_;
+    ros::Publisher FreDetectionpub_;
 
 
     std::vector<std::string> frame_ids_;
@@ -56,11 +59,21 @@ public:
     
     std::string sub_img_topic_name;
     std::string pub_bbximg_topic_name;
+    std::string pub_fre_detections_topic_name;
+
     std::string classes_yaml_path;
+
+
     double conv_tsh_val;
     int tracking_closest_tsh_pixel;
     int MaxObjAge;
     int y_detection_border;
+    int y_publish_border;
+    int x_detection_border_left;
+    int x_detection_border_right;
+
+    int obj_width;
+    int obj_heigth;
 
     struct CenterPoint{
         float CpX;
@@ -85,6 +98,7 @@ public:
         int RectHeight;
         int RectWidth;
         CenterPoint Center;
+        bool Published;
     };
 
     typedef std::pair<int, DistId> DistDictType;
@@ -106,11 +120,21 @@ public:
         ros::param::get("/tracking_max_obj_age", MaxObjAge);
         ros::param::get("/TopicNamePubImgRaw", pub_bbximg_topic_name);
         ros::param::get("/TopicNameSubImgRaw", sub_img_topic_name);
+        ros::param::get("/TopicNamePubFreDetection", pub_fre_detections_topic_name);
         ros::param::get("/y_detect_border", y_detection_border);
+        ros::param::get("/x_detect_border_left", x_detection_border_left);
+        ros::param::get("/x_detect_border_right", x_detection_border_right);
         ros::param::get("/classnameyamlpath", classes_yaml_path);
-        
-        
-        
+        ros::param::get("/y_publish_border", y_publish_border);
+        ros::param::get("/obj_width_tsh", obj_width);
+        ros::param::get("/obj_heigth_tsh", obj_heigth);
+
+        if(y_publish_border<y_detection_border){
+
+            y_publish_border=y_detection_border;
+            
+        }
+
         classes_yaml_path = package_path + classes_yaml_path;
 
         std::string image_topic = nh_.resolveName("/front_camera/color/image_raw");
@@ -123,6 +147,7 @@ public:
         
         boundingbx_pub_ = nh_.advertise<bounding_box_msgs::boundingbox>("object_detector/detections/boundingbox", 10);
         boundingbxs_pub_ = nh_.advertise<bounding_box_msgs::boundingboxes>("object_detector/detections/boundingboxs", 10);
+        FreDetectionpub_ = nh_.advertise<std_msgs::String>(pub_fre_detections_topic_name, 10);
         
         YAML::Node config = YAML::LoadFile(classes_yaml_path);
         
@@ -187,7 +212,7 @@ public:
         std::vector<BatchResult> batch_res;
         
         cv::Size s = image.size();
-        cv::Rect detectionROI(0, y_detection_border, s.width-0, s.width - y_detection_border);
+        cv::Rect detectionROI(x_detection_border_left, y_detection_border, x_detection_border_right - x_detection_border_left, s.height - y_detection_border);
         cv::rectangle(image, detectionROI, cv::Scalar(0, 255, 0), 4);
         cv::Mat temp0 = image.clone();
         
@@ -204,38 +229,41 @@ public:
         {
             cv::Point center_of_rect = (r.rect.br() + r.rect.tl())*0.5;
 
-            if(center_of_rect.y >= y_detection_border)
+            if((center_of_rect.y >= y_detection_border) && (center_of_rect.x >= x_detection_border_left) && (center_of_rect.x <= x_detection_border_right))
             {
+    
+                    Object Tmp;
+                    Tmp.ClassName = names[r.id];
+                    Tmp.DictID = ObjCnt;
+                    Tmp.Age = 0;
+                    Tmp.Prob=r.prob;
+                    Tmp.RectXmin=r.rect.x ;
+                    Tmp.RectYmin=r.rect.y ;
+                    Tmp.RectHeight=r.rect.height;
+                    Tmp.RectWidth=r.rect.width;
+                    Tmp.Center.CpX = r.rect.x + (r.rect.width/2);
+                    Tmp.Center.CpY = r.rect.y + (r.rect.height/2);
+                    Tmp.Published = false;
 
-                Object Tmp;
-                Tmp.ClassName = names[r.id];
-                Tmp.DictID = ObjCnt;
-                Tmp.Age = 0;
-                Tmp.Prob=r.prob;
-                Tmp.RectXmin=r.rect.x ;
-                Tmp.RectYmin=r.rect.y ;
-                Tmp.RectHeight=r.rect.height;
-                Tmp.RectWidth=r.rect.width;
-                Tmp.Center.CpX = r.rect.x + (r.rect.width/2);
-                Tmp.Center.CpY = r.rect.y + (r.rect.height/2);
+                    if((Tmp.RectHeight >= obj_heigth) && (Tmp.RectWidth>= obj_width)){
 
-                TmpObjDict.insert ( std::pair<int,Object>(ObjCnt,Tmp) );
+                        TmpObjDict.insert ( std::pair<int,Object>(ObjCnt,Tmp) );
 
-                ObjCnt++;
+                    }
+
+                    ObjCnt++;
             }
 
         }
 
         if(!ObjectDict.empty())
         {
-            std::cout << "Current Emelents " << ObjectDict.size() << '\n';
             std::vector<int> MachedIdsTo;
             std::vector<int> MachedIdsFrom;
             if (!TmpObjDict.empty()){
 
                 for (auto const& l : TmpObjDict){
                     
-                    std::cout << "Temp Detected Emelents " << TmpObjDict.size() << '\n';
                     Object TmpObj = l.second;
                     int tmpid = l.first;
 
@@ -268,7 +296,10 @@ public:
                         
                         if ((int)clst.second.Dist < tracking_closest_tsh_pixel){
 
+                            TmpObjDict[clst.second.ObjIdFrom].Published = ObjectDict[clst.second.ObjIdTo].Published;
+
                             ObjectDict[clst.second.ObjIdTo] = TmpObjDict[clst.second.ObjIdFrom];
+              
                             Object MatchObj = ObjectDict[clst.second.ObjIdTo];
 
                             MachedIdsFrom.push_back(clst.second.ObjIdFrom);
@@ -292,14 +323,11 @@ public:
                 }
 
                 for(auto it = std::begin(MachedIdsFrom); it != std::end(MachedIdsFrom); ++it) {
+
                     if (TmpObjDict.count(*it) > 0) {
                         TmpObjDict.erase(*it);
                     }
                 }
-
-            
-            std::cout << "Aftermatching Temp Elements " << TmpObjDict.size() << '\n';
-            std::cout << "Aftermatching Object Elements " << ObjectDict.size() << '\n';
 
             }
             
@@ -307,7 +335,9 @@ public:
                 for (auto const& x : TmpObjDict){
 
                     if(x.second.Center.CpY >1000){ //It seems the object has left the Window in y-direction
+
                         if (TmpObjDict.count(x.first) > 0) {
+
                         TmpObjDict.erase(x.first);
                         }
                         
@@ -336,6 +366,27 @@ public:
                 else{
                     if (x.second.Age >= MaxObjAge)
                     {
+                        //if(Obj.Published == false){
+
+                            std_msgs::String FreDetectionMsg;
+
+                            std::stringstream FreDetectionMsgStream;
+
+                            if(x.second.ClassName == "dandelion"){
+                                FreDetectionMsgStream << "weed";
+                            }
+                            else{
+                                FreDetectionMsgStream << x.second.ClassName; 
+                            }
+                            //FreDetectionMsgStream <<" "<< item;
+
+                            FreDetectionMsg.data = FreDetectionMsgStream.str();
+
+                            FreDetectionpub_.publish(FreDetectionMsg);
+
+                            //Obj.Published =true;
+                        //}
+
                         ToRemoveObjs.push_back(item);
                     }
                     else{
@@ -350,6 +401,7 @@ public:
             for(auto it = std::begin(ToRemoveObjs); it != std::end(ToRemoveObjs); ++it) {
 
                 if (ObjectDict.count(*it) > 0) {
+
                     ObjectDict.erase(*it);
                 }
             }
@@ -381,9 +433,10 @@ public:
 
         }
 
-        
-        for (auto const& h : ObjectDict){
+        //std::cout << "Current Emelents " << ObjectDict.size() << '\n';
 
+        for (auto const& h : ObjectDict){
+            
             Object Obj = h.second;
             int id = h.first;
                 
@@ -399,15 +452,23 @@ public:
             rect1.y = Obj.RectYmin;
             rect1.width = Obj.RectWidth;
             rect1.height = Obj.RectHeight;
-            
+
+            std::stringstream stream;
             
             cv::rectangle(image, rect1, cv::Scalar(255, 0, 0), 2);
-            
-            std::stringstream stream;
             
             stream << std::fixed << std::setprecision(2)  << "  score:" << Obj.Prob <<  " "<< Obj.ClassName << "id:" << id;
             
             cv::putText(image, stream.str(), cv::Point(Obj.RectXmin, Obj.RectYmin - 5), 0, 1, cv::Scalar(0, 0, 255), 2);
+
+
+            //Publish the detected Object 
+            if(Obj.Center.CpY >= y_publish_border){
+                cv::Point p1(0, y_publish_border), p2(1920, y_publish_border);
+                cv::line(image, p1, p2, cv::Scalar(255, 0, 0),2, cv::LINE_8);
+
+
+            }
 
             boundingbx_pub_.publish(bbx);
             bbxs.bounding_boxes.push_back(bbx);
@@ -415,6 +476,10 @@ public:
 
             boundingbxs_pub_.publish(bbxs);
             pub_.publish(input_bridge->toImageMsg());
+
+
+
+            
 
             
     }
